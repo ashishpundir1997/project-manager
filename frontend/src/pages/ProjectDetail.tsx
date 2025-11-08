@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Edit, Trash2, CheckCircle2, Circle, User } from 'lucide-react';
+import { ArrowLeft, Plus, Edit, Trash2, CheckCircle2, Circle, User, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useProjectStore } from '@/store/projectStore';
 import { useTaskStore } from '@/store/taskStore';
@@ -25,6 +25,11 @@ export default function ProjectDetail() {
   const [editingTask, setEditingTask] = useState<{ id: string; name: string; assignedTo?: string } | null>(null);
   const [taskName, setTaskName] = useState('');
   const [selectedMember, setSelectedMember] = useState<string>('');
+  const [isCreating, setIsCreating] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [togglingTaskId, setTogglingTaskId] = useState<string | null>(null);
+  const [assigningTaskId, setAssigningTaskId] = useState<string | null>(null);
 
   const project = projects.find((p) => p._id === id);
   const projectTasks = id ? tasks[id] || [] : [];
@@ -42,6 +47,7 @@ export default function ProjectDetail() {
       toast.error('Task name is required');
       return;
     }
+    setIsCreating(true);
     try {
       await createTask(id, taskName, selectedMember || undefined);
       setTaskName('');
@@ -50,6 +56,8 @@ export default function ProjectDetail() {
       toast.success('Task created successfully');
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Failed to create task');
+    } finally {
+      setIsCreating(false);
     }
   };
 
@@ -58,6 +66,7 @@ export default function ProjectDetail() {
       toast.error('Task name is required');
       return;
     }
+    setIsUpdating(true);
     try {
       await updateTask(editingTask.id, { 
         name: taskName,
@@ -70,15 +79,20 @@ export default function ProjectDetail() {
       toast.success('Task updated successfully');
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Failed to update task');
+    } finally {
+      setIsUpdating(false);
     }
   };
 
   const handleToggleComplete = async (taskId: string, completed: boolean) => {
+    setTogglingTaskId(taskId);
     try {
       await updateTask(taskId, { completed: !completed });
       toast.success(completed ? 'Task marked as incomplete' : 'Task completed!');
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Failed to update task');
+    } finally {
+      setTogglingTaskId(null);
     }
   };
 
@@ -89,21 +103,28 @@ export default function ProjectDetail() {
 
   const handleDelete = async () => {
     if (!deletingTaskId) return;
+    setIsDeleting(true);
     try {
       await deleteTask(deletingTaskId);
       toast.success('Task deleted successfully');
       setDeletingTaskId(null);
+      setIsDeleteOpen(false);
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Failed to delete task');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
   const handleAssignTask = async (taskId: string, memberId: string) => {
+    setAssigningTaskId(taskId);
     try {
       await updateTask(taskId, { assignedTo: memberId || undefined });
       toast.success('Task assigned successfully');
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Failed to assign task');
+    } finally {
+      setAssigningTaskId(null);
     }
   };
 
@@ -184,9 +205,12 @@ export default function ProjectDetail() {
                     <div className="flex items-center gap-4">
                       <button
                         onClick={() => handleToggleComplete(task._id, task.completed)}
-                        className="flex-shrink-0"
+                        className="flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled={togglingTaskId === task._id}
                       >
-                        {task.completed ? (
+                        {togglingTaskId === task._id ? (
+                          <Loader2 className="h-6 w-6 text-gray-400 animate-spin" />
+                        ) : task.completed ? (
                           <CheckCircle2 className="h-6 w-6 text-green-600" />
                         ) : (
                           <Circle className="h-6 w-6 text-gray-400" />
@@ -216,6 +240,7 @@ export default function ProjectDetail() {
                           }
                           onChange={(e) => handleAssignTask(task._id, e.target.value)}
                           className="w-40"
+                          disabled={assigningTaskId === task._id}
                         >
                           <option value="">Unassigned</option>
                           {members.filter(m => m && m._id).map((member) => (
@@ -285,10 +310,10 @@ export default function ProjectDetail() {
                   setIsCreateOpen(false);
                   setTaskName('');
                   setSelectedMember('');
-                }}>
+                }} disabled={isCreating}>
                   Cancel
                 </Button>
-                <Button onClick={handleCreate}>Create</Button>
+                <Button onClick={handleCreate} loading={isCreating}>Create</Button>
               </div>
             </div>
           </DialogContent>
@@ -333,10 +358,10 @@ export default function ProjectDetail() {
                   setTaskName('');
                   setSelectedMember('');
                   setEditingTask(null);
-                }}>
+                }} disabled={isUpdating}>
                   Cancel
                 </Button>
-                <Button onClick={handleEdit}>Save</Button>
+                <Button onClick={handleEdit} loading={isUpdating}>Save</Button>
               </div>
             </div>
           </DialogContent>
@@ -352,6 +377,7 @@ export default function ProjectDetail() {
           cancelText="Cancel"
           variant="destructive"
           onConfirm={handleDelete}
+          loading={isDeleting}
         />
       </div>
     </div>

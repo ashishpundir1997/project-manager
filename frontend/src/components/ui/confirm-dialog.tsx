@@ -11,6 +11,7 @@ interface ConfirmDialogProps {
   cancelText?: string;
   variant?: 'default' | 'destructive';
   onConfirm: () => void;
+  loading?: boolean;
 }
 
 export function ConfirmDialog({
@@ -22,6 +23,7 @@ export function ConfirmDialog({
   cancelText = 'Cancel',
   variant = 'destructive',
   onConfirm,
+  loading = false,
 }: ConfirmDialogProps) {
   const handleConfirm = () => {
     onConfirm();
@@ -49,12 +51,13 @@ export function ConfirmDialog({
           </DialogDescription>
         </DialogHeader>
         <div className="flex justify-end gap-2 pt-4">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
             {cancelText}
           </Button>
           <Button 
             variant={variant === 'destructive' ? 'destructive' : 'default'}
             onClick={handleConfirm}
+            loading={loading}
           >
             {confirmText}
           </Button>

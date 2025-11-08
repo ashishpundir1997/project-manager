@@ -19,6 +19,9 @@ export default function Dashboard() {
   const [deletingProjectId, setDeletingProjectId] = useState<string | null>(null);
   const [editingProject, setEditingProject] = useState<{ id: string; name: string } | null>(null);
   const [projectName, setProjectName] = useState('');
+  const [isCreating, setIsCreating] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     fetchProjects();
@@ -29,6 +32,7 @@ export default function Dashboard() {
       toast.error('Project name is required');
       return;
     }
+    setIsCreating(true);
     try {
       await createProject(projectName);
       setProjectName('');
@@ -36,6 +40,8 @@ export default function Dashboard() {
       toast.success('Project created successfully');
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Failed to create project');
+    } finally {
+      setIsCreating(false);
     }
   };
 
@@ -44,6 +50,7 @@ export default function Dashboard() {
       toast.error('Project name is required');
       return;
     }
+    setIsUpdating(true);
     try {
       await updateProject(editingProject.id, { name: projectName });
       setProjectName('');
@@ -52,6 +59,8 @@ export default function Dashboard() {
       toast.success('Project updated successfully');
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Failed to update project');
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -62,12 +71,16 @@ export default function Dashboard() {
 
   const handleDelete = async () => {
     if (!deletingProjectId) return;
+    setIsDeleting(true);
     try {
       await deleteProject(deletingProjectId);
       toast.success('Project deleted successfully');
       setDeletingProjectId(null);
+      setIsDeleteOpen(false);
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Failed to delete project');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -187,10 +200,10 @@ export default function Dashboard() {
                 autoFocus
               />
               <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setIsCreateOpen(false)}>
+                <Button variant="outline" onClick={() => setIsCreateOpen(false)} disabled={isCreating}>
                   Cancel
                 </Button>
-                <Button onClick={handleCreate}>Create</Button>
+                <Button onClick={handleCreate} loading={isCreating}>Create</Button>
               </div>
             </div>
           </DialogContent>
@@ -214,10 +227,10 @@ export default function Dashboard() {
                 autoFocus
               />
               <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setIsEditOpen(false)}>
+                <Button variant="outline" onClick={() => setIsEditOpen(false)} disabled={isUpdating}>
                   Cancel
                 </Button>
-                <Button onClick={handleEdit}>Save</Button>
+                <Button onClick={handleEdit} loading={isUpdating}>Save</Button>
               </div>
             </div>
           </DialogContent>
@@ -233,6 +246,7 @@ export default function Dashboard() {
           cancelText="Cancel"
           variant="destructive"
           onConfirm={handleDelete}
+          loading={isDeleting}
         />
       </div>
     </div>

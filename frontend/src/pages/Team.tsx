@@ -11,6 +11,7 @@ export default function Team() {
   const { members, loading, error, fetchMembers, createMember } = useTeamStore();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [memberName, setMemberName] = useState('');
+  const [isCreating, setIsCreating] = useState(false);
 
   useEffect(() => {
     fetchMembers();
@@ -21,6 +22,7 @@ export default function Team() {
       toast.error('Member name is required');
       return;
     }
+    setIsCreating(true);
     try {
       await createMember(memberName);
       setMemberName('');
@@ -28,6 +30,8 @@ export default function Team() {
       toast.success('Team member added successfully');
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Failed to add team member');
+    } finally {
+      setIsCreating(false);
     }
   };
 
@@ -147,10 +151,10 @@ export default function Team() {
                 autoFocus
               />
               <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setIsCreateOpen(false)}>
+                <Button variant="outline" onClick={() => setIsCreateOpen(false)} disabled={isCreating}>
                   Cancel
                 </Button>
-                <Button onClick={handleCreate}>Add</Button>
+                <Button onClick={handleCreate} loading={isCreating}>Add</Button>
               </div>
             </div>
           </DialogContent>
